@@ -1,0 +1,141 @@
+<!doctype html>
+<html>
+	<head>
+		<title>Tomcat RIO</title>
+        <meta charset="utf-8">
+        <meta name="description" content="Tomcat RIO Simulator">
+        <meta name="author" content="Madgrim">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+		<script src="https://pixijs.download/release/pixi.js"></script>
+		<script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+		<script src="https://code.jquery.com/ui/1.13.1/jquery-ui.js"></script>
+		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+        <link rel="stylesheet" href="rio.css">
+	</head>
+	<body>
+		<script src="tomcatrio.js"></script>
+
+		<div id="display">
+			<div class="float" id="tomcat-ctl" style="top: 100px; left: 16px;">
+				<div id="tomcat-title" class="window-title"><i class="fa-solid fa-arrows-up-down-left-right"></i> Tomcat Control<i class="fa-solid fa-caret-up min-button" id="tomcat-min"></i></div>
+
+				<div id="tomcat-content">
+
+					<div class="status" id="status">
+						HDG: <b>000</b> | IAS: <b>350</b> | ALT: <b>25,000</b><br />
+						Roll: <b>steady</b> | Throttle: <b>hold</b> | Pitch: <b>hold</b><br />   
+					</div>
+
+					<div class="btn-group">
+						<button class="pushbtn" id="left-break">&lt;&lt;&lt;</button>
+						<button class="pushbtn" id="left-hard">&lt;&lt;</button>
+						<button class="pushbtn" id="left-std">&lt;</button>
+						<button class="pushbtn pressed" id="steady">Steady</button>
+						<button class="pushbtn" id="right-std">&gt;</button>
+						<button class="pushbtn" id="right-hard">&gt;&gt;</button>
+						<button class="pushbtn" id="right-break">&gt;&gt;&gt;</button>
+					</div>
+
+					<div class="btn-group">
+						<button class="pushbtn" id="up-10k">+10k</button>
+						<button class="pushbtn" id="up-5k">+5k</button>
+						<button class="pushbtn" id="up-1k">+1k</button>
+						<button class="pushbtn pressed" id="hold">Hold</button>
+						<button class="pushbtn" id="dwn-1k">-1k</button>
+						<button class="pushbtn" id="dwn-5k">-5k</button>
+						<button class="pushbtn" id="dwn-10k">-10k</button>
+					</div>
+
+					<div class="btn-group">
+						Alt: 
+						<select name="angels" id="angels">
+							<option value="40000">Angels 40</option>
+							<option value="35000">Angels 35</option>
+							<option value="30000">Angels 30</option>
+							<option value="25000" selected="true">Angels 25</option>
+							<option value="20000">Angels 20</option>
+							<option value="15000">Angels 15</option>
+							<option value="10000">Angels 10</option>
+							<option value="5000">Angels 5</option>
+						</select>
+						<button class="pushbtn" id="set-angels">Set</button>
+						Speed: 
+						<select name="speed" id="speed">
+							<option value="1000">1000 kts</option>
+							<option value="750">750 kts</option>
+							<option value="600">600 kts</option>
+							<option value="500">500 kts</option>
+							<option value="400">400 kts</option>
+							<option value="350" selected="true">350 kts</option>
+							<option value="300">300 kts</option>
+							<option value="250">250 kts</option>
+							<option value="200">200 kts</option>
+						</select>
+						<button class="pushbtn" id="set-speed">Set</button>
+					</div>				
+				</div>
+			</div>
+
+			<div class="float" id="game-ctl" style="top: 16px; left: 16px;">
+				<div id="game-title" class="window-title"><i class="fa-solid fa-gear"></i> Scenario Control <i class="fa-solid fa-caret-up min-button" id="game-min"></i></div>
+				<div id="game-content">
+
+					<div class="status" id="scenario-status">
+						Current scenario: <b>None</b>
+					</div>
+
+					<div class="btn-group">
+						Scenario:
+						<select name="scenario" id="scenario">
+						</select>
+						<button class="pushbtn" id="select-scenario">Select</button>
+						<button class="pushbtn" id="clear-scenario">Clear</button>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div class="panel">
+
+			<div class="range-group btn-group">
+				Range: 
+				<button class="pushbtn" id="r25">25</button>
+				<button class="pushbtn" id="r50">50</button>
+				<button class="pushbtn pressed" id="r100">100</button>
+				<button class="pushbtn" id="r200">200</button>
+			</div>
+
+			<div class="mode-group btn-group">
+				TID Mode: 
+				<button class="pushbtn" id="gnd-stab">GND STAB</button>
+				<button class="pushbtn pressed" id="ac-stab">A/C STAB</button>
+				<button class="pushbtn" id="attk">ATTK</button>
+			</div>
+				
+			<div class="azscan-group btn-group">
+				AZ Scan: 
+				<button class="pushbtn" id="az10">10&deg;</button>
+				<button class="pushbtn" id="az20">20&deg;</button>
+				<button class="pushbtn pressed" id="az40">40&deg;</button>
+				<button class="pushbtn" id="az65">65&deg;</button>
+			</div>
+
+			<div class="bars-group btn-group">
+				EL Bars: 
+				<button class="pushbtn" id="bars1">1</button>
+				<button class="pushbtn" id="bars2">2</button>
+				<button class="pushbtn pressed" id="bars4">4</button>
+				<button class="pushbtn" id="bars8">8</button>
+			</div>
+
+			<div class="antenna-group btn-group">
+				<button class="pushbtn" id="el-up">&#8593;</button>
+				<button class="pushbtn" id="az-left">&#10229;</button>
+				<button class="pushbtn" id="az-right">&#10230;</button>
+				<button class="pushbtn" id="el-down">&#8595;</button>
+			</div>
+
+		</div>
+	</body>
+</html>

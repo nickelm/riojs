@@ -1,0 +1,40 @@
+---------------------------------------------------------------------
+TODO.txt
+---------------------------------------------------------------------
+
+First public release:
+[ ] Message log as floating dialog
+[ ] Keyboard control of the fighter
+[X] Provide all fighter control calls as subtitles
+[X] Game menu
+[X] - Launch bogey
+[X] - Restart
+[X] - AWACS BRA radio calls
+[X] Message system
+[X] Minimize floating menus
+[X] Keyboard control of the radar
+[X] Lose radar lock if outside radar volume
+[X] Altitude on radar contacts
+[X] Render closure
+[X] Ground stab mode
+[X] - UI panel
+[X] - Absolute direction vectors
+[X] Horizon line
+
+Main features:
+[ ] Horizon line discontinuity
+[ ] AWACS voice calls
+[X] Clicking/hooking a target
+[ ] Radar contacts - friendly, hostile
+
+Additional features
+[ ] Losing radar contact icon
+[ ] DDD display?
+[ ] RWS mode
+[ ] Map trace mode (Google or Leaflet map)
+[ ] ACMI log file for Tacview
+[ ] 3D view
+
+Bugs:
+[ ] Direction vectors scaled incorrectly depending on range
+[ ] Ground stab still not working well (angles mixed up)

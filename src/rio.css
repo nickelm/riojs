@@ -1,0 +1,111 @@
+body {
+	margin: 0;
+	padding: 0;
+	overflow: hidden;
+	font-family: sans-serif;
+}
+
+canvas {
+	display: block;
+	position: absolute;
+}
+
+.panel {
+	height: 128px;
+	width: 100%;
+	color: white;
+	background-image: linear-gradient(#0d0d0d, #686d73);
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	grid-template-rows: repeat(3, 1fr);
+	padding: 8px;
+	position: absolute;
+	bottom: 0px;
+}
+
+#display {
+	position: relative;
+}
+
+.window-title {
+	cursor: move;
+	background-color: #00ff00;
+	min-width: 200px;
+	color: black;
+	padding: 4px;
+	font-weight: bold;
+}
+
+.status {
+	padding: 8px;
+	text-align: center;
+	color: black;
+	background-color: #f0e68c;
+	background-color: #aaaaaa;
+}
+
+.min-button {
+	position: absolute;
+	right: 4px;
+}
+
+.float {
+    z-index: 100;
+    border: 1px solid;
+    border-color: #00ff00; 
+    color: white;
+    float: right;
+    position: absolute;
+	background-image: linear-gradient(#0d0d0d, #686d73);
+    border-radius: 4px;
+}
+
+.pushbtn {
+    text-decoration: none;
+    border: none;
+    padding: 2px 8px;
+    font-size: 16px;
+	background-image: linear-gradient(#0d0d0d, #686d73);
+	color: white;
+    border-radius: 4px;
+    box-shadow: 7px 6px 28px 1px rgba(0, 0, 0, 0.24);
+}
+
+.pushbtn:active {
+    color: yellow;
+    transform: scale(0.75);
+}
+
+.pressed {
+	color: rgb(0, 255, 0);
+	border: 1px solid;
+}
+
+.btn-group {
+	margin: auto;
+}
+
+.range-group {
+	grid-column: 2;
+	grid-row: 2;
+}
+
+.mode-group {
+	grid-column: 2;
+	grid-row: 3;
+}
+
+.azscan-group {
+	grid-column: 1;
+	grid-row: 1;
+}
+
+.bars-group {
+	grid-column: 1;
+	grid-row: 2;
+}
+
+.antenna-group {
+	grid-column: 2;
+	grid-row: 1;	
+}
