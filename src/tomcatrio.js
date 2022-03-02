@@ -172,6 +172,10 @@ class PIDController {
 		this.target = target;
 	}
 
+	getTarget() {
+		return this.target;
+	}
+
 	update(delta, pv) {
 
 		// Calculate the output
@@ -246,7 +250,9 @@ function calculateAcceleration(throttle, speed, pitch, delta) {
 	let targetSpeed = lerp(flightModel[i - 1].speed, flightModel[i].speed, (throttle - flightModel[i - 1].throttle) / (flightModel[i].throttle - flightModel[i - 1].throttle));
 
 	// Now calculate the acceleration
-	let acc = 0.1 * (targetSpeed - speed);
+	let acc = 0.01 * (targetSpeed - speed);
+	if (acc > 0.5) acc = 0.5;
+	if (acc < -0.5) acc = -0.5;
 
 	// Adjust acceleration based on pitch
 	acc -= pitch / 20.0;
@@ -352,11 +358,11 @@ class Tomcat {
 		this.roll = 0.0;
 		this.throttle = 0.80;
 		this.pos = new Vector3(0, 0, altitude);
-		this.speedPID = new PIDController(0.0001, 0, 0, 1.2, 0.01);
+		this.speedPID = new PIDController(0.0001, 0, 0, 0.01, 0.001);
 		this.speedPID.setTarget(speed);
-		this.altPID = new PIDController(0.5, 0, 0.25, 20, 1.0);
+		this.altPID = new PIDController(1.0, 0, 0.25, 20, 1.0);
 		this.altPID.setTarget(altitude);
-		this.rollPID = new PIDController(0.1, 0, 0, 20, 0.1);
+		this.rollPID = new PIDController(0.1, 0, 0, 5, 0.1);
 		this.rollPID.setTarget(0.0);
 		this.pidDelta = 0.0;
 		this.currTurn = 'steady';
@@ -372,6 +378,10 @@ class Tomcat {
 		this.rollPID.setTarget(roll);
 	}
 
+	getRoll() {
+		return this.rollPID.getTarget();
+	}
+
 	setSpeed(speed) {
 		this.speedPID.setTarget(speed);
 	}
@@ -380,16 +390,18 @@ class Tomcat {
 
 		// Don't update the controller too often (instability)
 		this.pidDelta += delta;
-		if (this.pidDelta > 10 * delta) {
+		if (this.pidDelta > 3 * delta) {
 
 			// Manage altitude
 			this.pitch = this.altPID.update(this.pidDelta, this.pos.z);
 
-			// Update the roll and heading
-			this.roll += this.rollPID.update(this.pidDelta, this.roll);
-
 			// Update speed
 			this.throttle += this.speedPID.update(this.pidDelta, this.speed);
+			if (this.throttle > 1.2) this.throttle = 1.2;
+			if (this.throttle < 0.6) this.throttle = 0.6;
+
+			// Update the roll and heading
+			this.roll += this.rollPID.update(this.pidDelta, this.roll);
 	
 			// Reset update timer
 			this.pidDelta = 0.0;
@@ -399,7 +411,7 @@ class Tomcat {
 		this.speed += calculateAcceleration(this.throttle, this.speed, this.pitch, delta);
 
 		// Update heading based on angle of roll
-		this.heading += delta * this.roll / 10.0;
+		this.heading += delta * 1091 / ms2kts(this.speed) * Math.tan(deg2rad(this.roll));
 		while (this.heading < 0) this.heading += 360.0;
 		while (this.heading >= 360.0) this.heading -= 360.0;
 		
@@ -723,12 +735,24 @@ function turnRadar(delta) {
   awg9.azimuth += delta;
 }
 
-function rollTomcat(angle, id, message) {
+let rollCommands = [ 'left-break', 'left-hard', 'left-std', 'steady', 'right-std', 'right-hard', 'right-break' ];
+let rollValues = { 'left-break': -60, 'left-hard': -45, 'left-std': -30, 'steady': 0, 'right-std': 30, 'right-hard': 45, 'right-break': 60 };
+let rollMessages = { 'left-break': 'break left!', 'left-hard': 'left hard.', 'left-std': 'left standard.', 'steady': 'steady.', 'right-std':'right standard.', 'right-hard':'right hard.', 'right-break':'break right!' };
+
+function rollTomcat(id) {
 	if (tomcat.currTurn != '') $('#' + tomcat.currTurn).removeClass('pressed');
-	tomcat.setRoll(angle);
+	tomcat.setRoll(rollValues[id]);
 	tomcat.currTurn = id;
 	$('#' + tomcat.currTurn).addClass('pressed');
-	messages.add('RIO: ' + message);
+	messages.add('RIO: ' + rollMessages[id]);
+}
+
+function changeRoll(delta) {
+	if (tomcat.currTurn == '') return;
+	let curr = rollCommands.indexOf(tomcat.currTurn);
+	curr += delta;
+	if (curr < 0 || curr >= rollCommands.length) return;
+	rollTomcat(rollCommands[curr]);
 }
 
 function setTomcatAltitude(alt, id, message) {
@@ -759,7 +783,7 @@ class InterceptScenario extends Scenario {
 		let alt = getRandom(5000, 40000);
 		let spd = getRandom(200, 600);
 		world.createBogey(brg, hdg, nm2m(this.range), ft2m(alt), kts2ms(spd));
-		messages.add(`${callsignAWACS.toUpperCase()}: ${callsignPlayer}, ${callsignAWACS}, new group, BRAA ${Math.round(brg)}, ${this.range} miles, ${Math.round(alt)} feet, hot.`, 5.0);
+		messages.add(`${callsignAWACS.toUpperCase()}: ${callsignPlayer}, ${callsignAWACS}, new group, BRAA ${Math.round(brg)}, ${this.range} miles, ${Math.round(alt / 10000.0) * 10000} feet, hot.`, 5.0);
 	}
 	update(delta) {}
 	cleanup() {
@@ -777,6 +801,7 @@ class MessageSystem {
 	}
 	add(text, duration = 1.5) {
 		this.buffer.push({ text: text, expire: this.currTime + duration, time: Date.now() });
+		$('#history').append(text + '\n');
 	}
 	update(delta) {
 		
@@ -925,6 +950,7 @@ $(document).ready(function() {
 	// Enable dragging on the window bar
 	$('#tomcat-ctl').draggable({ handle: '#tomcat-title' });
 	$('#game-ctl').draggable({ handle: '#game-title' });
+	$('#message-history').draggable({ handle: '#history-title' });
 
 	// Enable minimizing
 	$('#tomcat-min').click(() => {
@@ -951,7 +977,18 @@ $(document).ready(function() {
 			$('#game-min').addClass('fa-caret-up');
 		}
 	});
-
+	$('#history-min').click(() => {
+		if ($('#history-content').is(':visible')) {
+			$('#history-content').hide();
+			$('#history-min').removeClass('fa-caret-up');
+			$('#history-min').addClass('fa-caret-down');
+		}
+		else {
+			$('#history-content').show();
+			$('#history-min').removeClass('fa-caret-down');
+			$('#history-min').addClass('fa-caret-up');
+		}
+	});
 
 	$('#set-angels').click(() => {
 		let alt = $('#angels').find(":selected").val();
@@ -967,13 +1004,13 @@ $(document).ready(function() {
 		messages.add('RIO: make your speed ' + spd + ' knots.');
 	});
 
-	$('#left-break').click((e) => rollTomcat(-60, e.target.id, 'break left!'));
-	$('#left-hard').click((e) => rollTomcat(-45, e.target.id, 'left hard.'));
-	$('#left-std').click((e) => rollTomcat(-30, e.target.id, 'left standard.'));
-	$('#steady').click((e) => rollTomcat(0, e.target.id, 'steady.'));
-	$('#right-std').click((e) => rollTomcat(30, e.target.id, 'right standard.'));
-	$('#right-hard').click((e) => rollTomcat(45, e.target.id, 'right hard.'));
-	$('#right-break').click((e) => rollTomcat(60, e.target.id, 'break right!'));
+	$('#left-break').click((e) => rollTomcat(e.target.id));
+	$('#left-hard').click((e) => rollTomcat(e.target.id));
+	$('#left-std').click((e) => rollTomcat(e.target.id));
+	$('#steady').click((e) => rollTomcat(e.target.id));
+	$('#right-std').click((e) => rollTomcat(e.target.id));
+	$('#right-hard').click((e) => rollTomcat(e.target.id));
+	$('#right-break').click((e) => rollTomcat(e.target.id));
 
 	$('#up-10k').click((e) => setTomcatAltitude(tomcat.pos.z + ft2m(10000), e.target.id, 'climb 10,000.'));
 	$('#up-5k').click((e) => setTomcatAltitude(tomcat.pos.z + ft2m(5000), e.target.id, 'climb 5,000.'));
@@ -1026,8 +1063,10 @@ $(document).ready(function() {
 			awg9.elevation = 0.0;
 			break;
 		case 'a':
+			changeRoll(-1);
 			break;
 		case 'd':
+			changeRoll(+1);
 			break;
 		case 'w':
 			break;

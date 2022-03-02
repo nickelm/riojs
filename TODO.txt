@@ -1,10 +1,16 @@
 ---------------------------------------------------------------------
-TODO.txt
+TODO - riojs
 ---------------------------------------------------------------------
 
+Second public release:
+[X] Keyboard control of the fighter
+[X] Message log as floating dialog
+[X] Improved turning (less sluggishness)
+[X] Heading from bank
+
+
+
 First public release:
-[ ] Message log as floating dialog
-[ ] Keyboard control of the fighter
 [X] Provide all fighter control calls as subtitles
 [X] Game menu
 [X] - Launch bogey
@@ -22,12 +28,17 @@ First public release:
 [X] Horizon line
 
 Main features:
+[ ] Set heading in UI
 [ ] Horizon line discontinuity
 [ ] AWACS voice calls
 [X] Clicking/hooking a target
 [ ] Radar contacts - friendly, hostile
 
 Additional features
+[ ] AWACS comms 
+[ ] STT radar
+[ ] Phoenix/Sparrow launch
+[ ] Guidance mode (zero-cut intercept, kick and build intercept, BVR timeline)
 [ ] Losing radar contact icon
 [ ] DDD display?
 [ ] RWS mode
