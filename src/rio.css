@@ -22,6 +22,10 @@ textarea {
   resize: none;
 }
 
+.success {
+	background-color: #AADD00;
+}
+
 .panel {
 	height: 128px;
 	width: 100%;
@@ -52,7 +56,6 @@ textarea {
 	padding: 8px;
 	text-align: center;
 	color: black;
-	background-color: #f0e68c;
 	background-color: #aaaaaa;
 }
 
@@ -70,6 +73,17 @@ textarea {
     position: absolute;
 	background-image: linear-gradient(#0d0d0d, #686d73);
     border-radius: 4px;
+}
+
+#overlay{
+	position: fixed;
+  	width: 100%;
+  	height: 100%;
+	top: 0;
+  	left: 0;
+  	background-color: #000000;
+  	opacity: 0.6;
+  	z-index: 150;
 }
 
 .pushbtn {

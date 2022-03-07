@@ -3,12 +3,15 @@ TODO - riojs
 ---------------------------------------------------------------------
 
 Second public release:
+[ ] Responsive version (for mobile phone)
+[X] Splash screen
+[X] Kick and build intercept
+[X] Zero cut intercept
+[X] Guidance mode
 [X] Keyboard control of the fighter
 [X] Message log as floating dialog
 [X] Improved turning (less sluggishness)
 [X] Heading from bank
-
-
 
 First public release:
 [X] Provide all fighter control calls as subtitles
@@ -29,23 +32,25 @@ First public release:
 
 Main features:
 [ ] Set heading in UI
-[ ] Horizon line discontinuity
-[ ] AWACS voice calls
-[X] Clicking/hooking a target
 [ ] Radar contacts - friendly, hostile
+[X] AWACS voice calls
+[X] Clicking/hooking a target
+[ ] STT radar lock
+[ ] Phoenix/Sparrow launch
 
 Additional features
-[ ] AWACS comms 
-[ ] STT radar
-[ ] Phoenix/Sparrow launch
-[ ] Guidance mode (zero-cut intercept, kick and build intercept, BVR timeline)
+[ ] BVR guidance/tutorial
+[ ] Horizon line discontinuity
+[ ] Speaking to AWACS - conversation mode
 [ ] Losing radar contact icon
 [ ] DDD display?
 [ ] RWS mode
 [ ] Map trace mode (Google or Leaflet map)
 [ ] ACMI log file for Tacview
 [ ] 3D view
+[X] Guidance mode (zero-cut intercept, kick and build intercept, BVR timeline)
 
 Bugs:
+[ ] Keyboard control of the fighter flipping out
 [ ] Direction vectors scaled incorrectly depending on range
 [ ] Ground stab still not working well (angles mixed up)

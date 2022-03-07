@@ -25,37 +25,14 @@ function convertDMS(lat, lng) {
 	return latitudeCardinal + " " + latitude + "           " + longitudeCardinal + " " + longitude;
 }
 
-function deg2rad(deg) {
-	return deg / 180.0 * Math.PI;
-}
-
-function rad2deg(rad) {
-	return rad * 180.0 / Math.PI;
-}
-
-function kts2ms(kts) {
-	return kts * 0.514444;
-}
-
-function ms2kts(ms) {
-	return ms / 0.514444;
-}
-
-function nm2m(nm) {
-	return nm * 1852;
-}
-
-function m2nm(m) {
-	return m / 1852;  
-}
-
-function ft2m(ft) {
-	return ft * 0.3048;
-}
-
-function m2ft(m) {
-	return m / 0.3048;
-}
+let deg2rad = (deg) => deg / 180.0 * Math.PI;
+let rad2deg = (rad) => rad * 180.0 / Math.PI;
+let kts2ms = (kts) => kts * 0.514444;
+let ms2kts = (ms) =>ms / 0.514444;
+let nm2m = (nm) => nm * 1852;
+let m2nm = (m) => m / 1852;
+let ft2m = (ft) => ft * 0.3048;
+let m2ft = (m) => m / 0.3048;
 
 function resize() {
 	winWidth = window.innerWidth;
@@ -251,8 +228,8 @@ function calculateAcceleration(throttle, speed, pitch, delta) {
 
 	// Now calculate the acceleration
 	let acc = 0.01 * (targetSpeed - speed);
-	if (acc > 0.5) acc = 0.5;
-	if (acc < -0.5) acc = -0.5;
+//	if (acc > 0.5) acc = 0.5;
+	//if (acc < -0.5) acc = -0.5;
 
 	// Adjust acceleration based on pitch
 	acc -= pitch / 20.0;
@@ -291,7 +268,8 @@ function braa(pos1, vel1, pos2, vel2) {
 		bs: vel2.length,
 		ta: toaspect(rad2deg(bearing - br)),
 		closure: fclosure - bclosure,
-		va: toaspect(rad2deg(va))
+		va: toaspect(rad2deg(va)),
+		ls: diff.length * Math.sin(bearing - br)
 	};
 }
 
@@ -324,10 +302,11 @@ class World {
 	}
 
 	createBogey(brg, hdg, distance, alt, speed) {
-		let x = tomcat.pos.x - distance * Math.cos(deg2rad(brg) + 90);
-		let y = tomcat.pos.y + distance * Math.sin(deg2rad(brg) + 90);
+		let x = tomcat.pos.x - distance * Math.cos(deg2rad(brg + 90));
+		let y = tomcat.pos.y + distance * Math.sin(deg2rad(brg + 90));
 		let bogey = new Bogey(x, y, hdg, alt, speed);
 		this.bogeys.push(bogey);
+		return bogey;
 	}
 
 	update(delta) {
@@ -360,7 +339,7 @@ class Tomcat {
 		this.pos = new Vector3(0, 0, altitude);
 		this.speedPID = new PIDController(0.0001, 0, 0, 0.01, 0.001);
 		this.speedPID.setTarget(speed);
-		this.altPID = new PIDController(1.0, 0, 0.25, 20, 1.0);
+		this.altPID = new PIDController(1.0, 0, 0.15, 20, 1.0);
 		this.altPID.setTarget(altitude);
 		this.rollPID = new PIDController(0.1, 0, 0, 5, 0.1);
 		this.rollPID.setTarget(0.0);
@@ -442,7 +421,7 @@ class Contact {
 		this.gfx.click = () => {
 			awg9.hooked = this.bogey;
 			let data = braa(tomcat.pos, tomcat.velocity, this.bogey.pos, this.bogey.velocity);
-			messages.add(`RIO: New radar contact, BRAA ${Math.round(data.brg)}, ${Math.round(m2nm(data.sr))} miles, ${Math.round(m2ft(data.alt))} feet, ${aspect2str(data.ta)}.`, 5.0);
+			messages.add(`RIO: New radar contact, BRAA ${Math.round(data.brg)}, ${Math.round(m2nm(data.sr))} miles, ${Math.round(m2ft(data.alt) / 1000.0) * 1000} feet, ${aspect2str(data.ta)}.`, 5.0);
 		};
 		this.alt = new PIXI.Text(Math.ceil(m2ft(this.bogey.pos.z) / 10000), awg9Style);
 		this.alt.anchor.set(1, 0.5);
@@ -724,7 +703,6 @@ function setTIDMode(e) {
 	$('#' + awg9.tidMode).addClass('pressed');
 }
 
-
 let fireInterval = null;
 
 function elevate(delta) {
@@ -747,7 +725,7 @@ function rollTomcat(id) {
 	messages.add('RIO: ' + rollMessages[id]);
 }
 
-function changeRoll(delta) {
+function changeTomcatRoll(delta) {
 	if (tomcat.currTurn == '') return;
 	let curr = rollCommands.indexOf(tomcat.currTurn);
 	curr += delta;
@@ -763,6 +741,103 @@ function setTomcatAltitude(alt, id, message) {
 	messages.add('RIO: ' + message);
 }
 
+
+let zeroCutTutorial = {
+	title: "Tutorial: Zero Cut Intercept",
+	init: () => {
+		let brg = Math.random() * 360;
+		let hdg = wrapdeg(brg + 180 + getRandom(-5, 5));
+		let alt = getRandom(10000, 40000);
+		let spd = getRandom(250, 600);
+		let range = 100;
+		let bogey = world.createBogey(brg, hdg, nm2m(range), ft2m(alt), kts2ms(spd));
+		messages.add(`${callsignAWACS.toUpperCase()}: ${callsignPlayer}, ${callsignAWACS}, new group, BRAA ${Math.round(brg)}, ${range} miles, ${Math.round(alt / 1000.0) * 1000} feet, hot.`, 5.0);
+		return bogey;
+	},
+	sequence: [
+		[
+			{ task: (t) => 'Turn to bogey bearing ' + Math.round(t.brg), check: (t) => Math.abs(t.ata) < 10.0 },
+			{ task: (t) => 'Roll out on bearing', check: (t) => Math.abs(tomcat.roll) < 10.0, conditional: true }
+		],
+		[ 
+			{ task: (t) => 'Match bogey altitude ' + Math.round(m2ft(t.alt) / 1000.0) * 1000, check: (t) => Math.abs(t.alt - tomcat.pos.z) < 500 },
+			{ task: (t) => 'Hook (select) the target', check: (t) => awg9.hooked !== null },
+			{ task: (t) => 'Match reciprocal bogey heading ' + Math.round(wrapdeg(t.bh - 180)), check: (t) => Math.abs(t.fh - (t.bh - 180)) < 10 },
+			{ task: (t) => 'Increase speed to 500+ for high-speed intercept', check: (t) => tomcat.speed >= kts2ms(490) },
+		],
+		[
+			{ task: (t) => 'Maintain TA of 5&#177;2&deg; at 50 nm', check: (t) => Math.abs(Math.abs(t.ta) - 5) < 2 },
+			{ task: (t) => 'Approach to 50 nm', check: (t) => m2nm(t.sr) < 50, conditional: true },
+		],
+		[
+			{ task: (t) => 'Maintain TA of 10&#177;2&deg; at 40 nm', check: (t) => Math.abs(Math.abs(t.ta) - 10) < 2 },
+			{ task: (t) => 'Approach to 40 nm', check: (t) => m2nm(t.sr) < 40, conditional: true },
+		],
+		[
+			{ task: (t) => 'Maintain TA of 15&#177;2&deg; at 30 nm', check: (t) => Math.abs(Math.abs(t.ta) - 15) < 2 },
+			{ task: (t) => 'Approach to 30 nm', check: (t) => m2nm(t.sr) < 30, conditional: true },
+		],
+		[
+			{ task: (t) => 'Maintain TA of 20&#177;2&deg; at 20 nm', check: (t) => Math.abs(Math.abs(t.ta) - 20) < 2 },
+			{ task: (t) => 'Approach to 20 nm', check: (t) => m2nm(t.sr) < 20, conditional: true },
+		],
+		[
+			{ task: (t) => 'Maintain TA of 30&#177;2&deg; at 15 nm', check: (t) => Math.abs(Math.abs(t.ta) - 30) < 2 },
+			{ task: (t) => 'Approach to 15 nm', check: (t) => m2nm(t.sr) < 15, conditional: true },
+		],
+		[
+			{ task: (t) => 'Maintain TA of 40&#177;2&deg; at 10 nm', check: (t) => Math.abs(Math.abs(t.ta) - 40) < 2 },
+			{ task: (t) => 'Approach to 10 nm', check: (t) => m2nm(t.sr) < 10, conditional: true },
+		],
+		[
+			{ task: (t) => 'Go pure pursuit (point nose on target)', check: (t) => Math.abs(t.ata) < 5.0 },
+			{ task: (t) => 'Reduce closure to &lt;50 kts', check: (t) => Math.abs(t.closure) < ms2kts(50), conditional: true },
+			{ task: (t) => 'Approach within 2 nm', check: (t) => m2nm(t.sr) < 2, conditional: true },
+		],
+		[{ task: (t) => 'Success!', check: (t) => false }]
+	]
+};
+
+let kickAndBuildTutorial = {
+	title: "Tutorial: Kick-and-Build Intercept",
+	init: () => {
+		let brg = Math.random() * 360;
+		let hdg = wrapdeg(brg + 180 + getRandom(10, 20));
+		let alt = getRandom(10000, 40000);
+		let spd = getRandom(250, 600);
+		let range = 100;
+		let bogey = world.createBogey(brg, hdg, nm2m(range), ft2m(alt), kts2ms(spd));
+		messages.add(`${callsignAWACS.toUpperCase()}: ${callsignPlayer}, ${callsignAWACS}, new group, BRAA ${Math.round(brg)}, ${range} miles, ${Math.round(alt / 1000.0) * 1000} feet, hot.`, 5.0);
+		return bogey;
+	},
+	sequence: [
+		[
+			{ task: (t) => 'Turn to bogey bearing ' + Math.round(t.brg), check: (t) => Math.abs(t.ata) < 10.0 },
+			{ task: (t) => 'Roll out on bearing', check: (t) => Math.abs(tomcat.roll) < 10.0, conditional: true }
+		],
+		[ 
+			{ task: (t) => 'Hook (select) the target', check: (t) => awg9.hooked !== null },
+			{ task: (t) => 'Match bogey altitude ' + Math.round(m2ft(t.alt) / 1000.0) * 1000, check: (t) => Math.abs(t.alt - tomcat.pos.z) < 500, conditional: true},
+			{ task: (t) => 'Match bogey speed', check: (t) => Math.abs(tomcat.velocity.length - t.bs) < kts2ms(50)},
+		],
+		[
+			{ task: (t) => 'Turn right until bogey at radar gimbal limit' , check: (t) => Math.abs(Math.abs(t.ata) - 60) < 10 },
+			{ task: (t) => 'Achieve TA of 40&#177;2&deg;' , check: (t) => Math.abs(Math.abs(t.ta) - 40) < 2, conditional: true},
+		],
+		[
+			{ task: (t) => 'Maintain TA of 40&#177;2&deg;' , check: (t) => Math.abs(t.ta + 40) < 2 },
+			{ task: (t) => 'Set collision course (ATA/bearing 40&#177;2&deg;)' , check: (t) => Math.abs(t.ata - 40) < 2 },
+			{ task: (t) => 'Approach to 10 nm', check: (t) => m2nm(t.sr) < 10, conditional: true },
+		],
+		[
+			{ task: (t) => 'Go pure pursuit (point nose on target)', check: (t) => Math.abs(t.ata) < 5.0 },
+			{ task: (t) => 'Reduce closure to &lt;50 kts', check: (t) => Math.abs(t.closure) < ms2kts(50), conditional: true },
+			{ task: (t) => 'Approach within 2 nm', check: (t) => m2nm(t.sr) < 2, conditional: true },
+		],
+		[{ task: (t) => 'Success!', check: (t) => false }]
+	]
+};
+
 class Scenario {
 	constructor(title) {
 		this.title = title;
@@ -770,6 +845,49 @@ class Scenario {
 	init() {}
 	update(delta) {}
 	cleanup() {}
+}
+
+class TutorialScenario extends Scenario {
+	constructor(tutorial) {
+		super(tutorial.title);
+		this.tutorial = tutorial;
+	}
+	init() {
+		this.bogey = this.tutorial.init();
+		this.pos = 0;
+		this.timeOut = 0.0;
+	}
+	update(delta) {
+
+		// Are we in timeout? If so, don't change the display
+		if (this.timeOut > 0.0) {
+			this.timeOut -= delta;
+			return;
+		}
+		$('#scenario-status').removeClass('success');
+
+		// Check the conditions
+		let t = braa(tomcat.pos, tomcat.velocity, this.bogey.pos, this.bogey.velocity);
+		let msg = 'Current scenario: <b>' + scenario.title + '</b><br/>';
+		let allSat = true;
+		for (let cond of this.tutorial.sequence[this.pos]) {
+			if (cond.conditional === true && !allSat) break;
+			let currSat = cond.check(t);
+			allSat = allSat && currSat;
+			msg += '<i class="fa-solid ' + (currSat ? 'fa-check' : 'fa-xmark') + '"></i> <i>' + cond.task(t) + "</i><br/>";
+		}
+		$('#scenario-status').html(msg);
+
+		// Are all of the conditions fulfilled?
+		if (allSat && this.pos < this.tutorial.sequence.length - 1) {
+			this.pos += 1;
+			this.timeOut = 1.5;
+			$('#scenario-status').addClass('success');
+		}
+	}
+	cleanup() {
+		world.clear();
+	}
 }
 
 class InterceptScenario extends Scenario {
@@ -867,7 +985,9 @@ const scenarios = [
 	new InterceptScenario(80),
 	new InterceptScenario(60),
 	new InterceptScenario(40),
-	new InterceptScenario(20)
+	new InterceptScenario(20),
+	new TutorialScenario(zeroCutTutorial),
+	new TutorialScenario(kickAndBuildTutorial),
 ];
 
 // -- Event handlers
@@ -989,6 +1109,10 @@ $(document).ready(function() {
 			$('#history-min').addClass('fa-caret-up');
 		}
 	});
+	$('#splash-screen').click(() => {
+		$('#splash-screen').hide();
+		$('#overlay').hide();
+	});
 
 	$('#set-angels').click(() => {
 		let alt = $('#angels').find(":selected").val();
@@ -1063,14 +1187,13 @@ $(document).ready(function() {
 			awg9.elevation = 0.0;
 			break;
 		case 'a':
-			changeRoll(-1);
+			changeTomcatRoll(-1);
 			break;
 		case 'd':
-			changeRoll(+1);
-			break;
-		case 'w':
+			changeTomcatRoll(+1);
 			break;
 		case 's':
+			rollTomcat('steady');
 			break;
 		}
 		turnDelta += 0.05;
@@ -1100,6 +1223,9 @@ $(document).ready(function() {
 
 		// Update the message system
 		messages.update(diffTime);
+
+		// Update the scenario
+		if (scenario) scenario.update(diffTime);
 
 		// Save the time
 		lastTime = currTime;

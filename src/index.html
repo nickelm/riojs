@@ -1,23 +1,37 @@
 <!doctype html>
-<html>
-	<head>
-		<title>Tomcat RIO</title>
-        <meta charset="utf-8">
-        <meta name="description" content="Tomcat RIO Simulator">
-        <meta name="author" content="Madgrim">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
+<html lang="en-US">
 
+	<head>
+		<title>RIO: Radar Intercept Officer --- A F-14 Tomcat RIO Simulator</title>
+        <meta charset="utf-8">
+        <meta name="description" content="Virtual F-14 Tomcat RIO and AWG-9 Radar Simulator">
+        <meta name="author" content="Madgrim (VF-111)">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
 		<script src="https://pixijs.download/release/pixi.js"></script>
 		<script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
 		<script src="https://code.jquery.com/ui/1.13.1/jquery-ui.js"></script>
 		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
         <link rel="stylesheet" href="rio.css">
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+		<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+		<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+		<link rel="manifest" href="/site.webmanifest">
+		<link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
+		<meta name="msapplication-TileColor" content="#da532c">
+		<meta name="theme-color" content="#ffffff">
 	</head>
+	
 	<body>
+
 		<script src="tomcatrio.js"></script>
+		<div id="overlay"></div>
+
+		<div class="float" id="splash-screen" style="left: calc(50% - 256px); top: calc(50vh - 192px); z-index: 200; width: 512px; height: 384px; border: 10px solid;">
+			<img src="rio-splash.jpg" width="100%"></img>
+		</div>
 
 		<div id="display">
-			<div class="float" id="tomcat-ctl" style="top: 100px; left: 16px;">
+			<div class="float" id="tomcat-ctl" style="top: 196px; left: 16px;">
 				<div id="tomcat-title" class="window-title"><i class="fa-solid fa-arrows-up-down-left-right"></i> Tomcat Control<i class="fa-solid fa-caret-up min-button" id="tomcat-min"></i></div>
 
 				<div id="tomcat-content">
@@ -95,12 +109,13 @@
 				</div>
 			</div>
 
-			<div class="float" id="message-history" style="top: 256px; left: 16px;">
+			<div class="float" id="message-history" style="top: 392px; left: 16px;">
 				<div id="history-title" class="window-title"><i class="fa-solid fa-message"></i> Message History <i class="fa-solid fa-caret-down min-button" id="history-min"></i></div>
 				<div id="history-content" style="display: none">
 					<textarea readonly="true" cols="80" id="history"></textarea>
 				</div>
 			</div>
+	
 
 		</div>
 
