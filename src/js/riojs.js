@@ -1,5 +1,5 @@
 /* --------------------------------------------------------------------
- * tomcatrio.js
+ * riojs.js
  *
  * Browser game by Madgrim of VF-111.
  * Created February 2022. 
@@ -190,6 +190,12 @@ function wrapdeg(deg) {
 	return deg;
 }
 
+function clip(val, min, max) {
+	if (val < min) val = min;
+	if (val > max) val = max;
+	return val;
+}
+
 function toaspect(deg) {
 	aspect = wrapdeg(deg);
 	if (aspect > 180.0) aspect -= 360.0;
@@ -228,8 +234,6 @@ function calculateAcceleration(throttle, speed, pitch, delta) {
 
 	// Now calculate the acceleration
 	let acc = 0.01 * (targetSpeed - speed);
-//	if (acc > 0.5) acc = 0.5;
-	//if (acc < -0.5) acc = -0.5;
 
 	// Adjust acceleration based on pitch
 	acc -= pitch / 20.0;
@@ -376,11 +380,11 @@ class Tomcat {
 
 			// Update speed
 			this.throttle += this.speedPID.update(this.pidDelta, this.speed);
-			if (this.throttle > 1.2) this.throttle = 1.2;
-			if (this.throttle < 0.6) this.throttle = 0.6;
+			this.throttle = clip(this.throttle, 0.6, 1.2);
 
 			// Update the roll and heading
 			this.roll += this.rollPID.update(this.pidDelta, this.roll);
+			this.roll = clip(this.roll, -80, 80);
 	
 			// Reset update timer
 			this.pidDelta = 0.0;
@@ -546,12 +550,12 @@ class AWG9 {
 				// Calculate coordinates
 				let displayDim = Math.min(winWidth, winHeight);
 				let nmPerPixel = displayDim / this.range;
-				let xp = winWidth / 2 - m2nm(bogey.pos.x - tomcat.pos.x) * nmPerPixel;
+				let xp = winWidth / 2 + m2nm(bogey.pos.x - tomcat.pos.x) * nmPerPixel;
 				let yp = winHeight / 2 - m2nm(bogey.pos.y - tomcat.pos.y) * nmPerPixel;
 
 				// Calculate closure vector
-				let xd = ms2kts(bogey.velocity.x) / nmPerPixel;
-				let yd = -ms2kts(bogey.velocity.y) / nmPerPixel;
+				let xd =  ms2kts(bogey.velocity.x) / 1000.0 * 0.10 * winHeight;
+				let yd = -ms2kts(bogey.velocity.y) / 1000.0 * 0.10 * winHeight;
 
 				// Update the shape
 				bogey.contact.update(xp, yp, xd, yd);
@@ -568,7 +572,7 @@ class AWG9 {
 				// Calculate closure vector
 				let vt = tomcat.velocity.getInverse();
 				vt.add(bogey.velocity);
-				vt.scale(1 / nmPerPixel); // m/s?
+				vt.scale(0.10 * displayHeight / 1000);
 				let rd = rot2d(vt, tomcat.heading);
 
 				// Update the shape
@@ -740,7 +744,6 @@ function setTomcatAltitude(alt, id, message) {
 	$('#' + tomcat.currPitch).addClass('pressed');
 	messages.add('RIO: ' + message);
 }
-
 
 let zeroCutTutorial = {
 	title: "Tutorial: Zero Cut Intercept",
@@ -1109,9 +1112,17 @@ $(document).ready(function() {
 			$('#history-min').addClass('fa-caret-up');
 		}
 	});
+
+	// Splash screen
 	$('#splash-screen').click(() => {
 		$('#splash-screen').hide();
 		$('#overlay').hide();
+	});
+
+	// Toggle Splash
+	$('#about-btn').click(() => {
+		$('#splash-screen').show();
+		$('#overlay').show();
 	});
 
 	$('#set-angels').click(() => {

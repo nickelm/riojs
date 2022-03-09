@@ -4,6 +4,7 @@ TODO - riojs
 
 Second public release:
 [ ] Responsive version (for mobile phone)
+[ ] Improved image for splash screen
 [X] Splash screen
 [X] Kick and build intercept
 [X] Zero cut intercept
@@ -37,9 +38,9 @@ Main features:
 [X] Clicking/hooking a target
 [ ] STT radar lock
 [ ] Phoenix/Sparrow launch
+[ ] BVR guidance/tutorial
 
 Additional features
-[ ] BVR guidance/tutorial
 [ ] Horizon line discontinuity
 [ ] Speaking to AWACS - conversation mode
 [ ] Losing radar contact icon
@@ -51,6 +52,6 @@ Additional features
 [X] Guidance mode (zero-cut intercept, kick and build intercept, BVR timeline)
 
 Bugs:
-[ ] Keyboard control of the fighter flipping out
 [ ] Direction vectors scaled incorrectly depending on range
-[ ] Ground stab still not working well (angles mixed up)
+[X] Keyboard control of the fighter flipping out
+[X] Ground stab still not working well (angles mixed up)

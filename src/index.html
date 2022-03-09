@@ -2,7 +2,7 @@
 <html lang="en-US">
 
 	<head>
-		<title>RIO: Radar Intercept Officer --- A F-14 Tomcat RIO Simulator</title>
+		<title>RIO: Radar Intercept Officer &#8211; A F-14 Tomcat RIO Simulator</title>
         <meta charset="utf-8">
         <meta name="description" content="Virtual F-14 Tomcat RIO and AWG-9 Radar Simulator">
         <meta name="author" content="Madgrim (VF-111)">
@@ -11,23 +11,24 @@
 		<script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
 		<script src="https://code.jquery.com/ui/1.13.1/jquery-ui.js"></script>
 		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-        <link rel="stylesheet" href="riojs.css">
-        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-		<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-		<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-		<link rel="manifest" href="/site.webmanifest">
-		<link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
+        <link rel="stylesheet" href="css/riojs.css">
+        <link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon.png">
+		<link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32x32.png">
+		<link rel="icon" type="image/png" sizes="16x16" href="images/favicon-16x16.png">
+		<link rel="manifest" href="site.webmanifest">
+		<link rel="mask-icon" href="images/safari-pinned-tab.svg" color="#5bbad5">
 		<meta name="msapplication-TileColor" content="#da532c">
 		<meta name="theme-color" content="#ffffff">
 	</head>
 	
 	<body>
 
-		<script src="riojs.js"></script>
+		<script src="js/riojs.js"></script>
+
 		<div id="overlay"></div>
 
 		<div class="float" id="splash-screen" style="left: calc(50% - 256px); top: calc(50vh - 192px); z-index: 200; width: 512px; height: 384px; border: 10px solid;">
-			<img src="rio-splash.jpg" width="100%"></img>
+			<img src="images/rio-splash.jpg" width="100%"></img>
 		</div>
 
 		<div id="display">
@@ -77,7 +78,9 @@
 						Speed: 
 						<select name="speed" id="speed">
 							<option value="1000">1000 kts</option>
-							<option value="750">750 kts</option>
+							<option value="900">900 kts</option>
+							<option value="800">800 kts</option>
+							<option value="700">700 kts</option>
 							<option value="600">600 kts</option>
 							<option value="500">500 kts</option>
 							<option value="400">400 kts</option>
@@ -116,7 +119,6 @@
 				</div>
 			</div>
 	
-
 		</div>
 
 		<div class="panel">
@@ -157,6 +159,10 @@
 				<button class="pushbtn" id="az-left">&#10229;</button>
 				<button class="pushbtn" id="az-right">&#10230;</button>
 				<button class="pushbtn" id="el-down">&#8595;</button>
+			</div>
+
+			<div class="about-group btn-group">
+				<button class="pushbtn" id="about-btn">About RIO...</button>
 			</div>
 
 		</div>
