@@ -102,6 +102,21 @@ textarea {
     transform: scale(0.75);
 }
 
+.launchbtn {
+	text-decoration: none;
+	width: 48px;
+	font-size: 9px;
+	color: white;
+	background-image: radial-gradient(circle, rgba(139,0,10,1) 0%, rgba(121,9,9,1) 69%, rgba(194,2,2,1) 100%);
+	height: 48px;
+	border: 4px solid white;
+	border-radius: 24px;
+}
+
+.launchbtn:active {
+    transform: scale(0.75);
+}
+
 .pressed {
 	color: rgb(0, 255, 0);
 	border: 1px solid;
@@ -139,4 +154,9 @@ textarea {
 .about-group {
 	grid-column: 3;
 	grid-row: 1;
+}
+
+.weps-group {
+	grid-column: 1;
+	grid-row: 3;
 }

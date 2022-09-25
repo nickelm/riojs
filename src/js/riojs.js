@@ -108,6 +108,76 @@ class Vector2 {
 	}
 }
 
+class MovingAverage {
+	constructor(span) {
+		this.span = span;
+		this.data = [];
+	}
+	add(val, time) {
+		this.data.push({ val: val, time: time });
+	}
+	avg(time, cleanup = true) {
+
+		// Edge case: no data
+		if (this.data.length === 0) return 0.0;
+
+		// Edge case: only one data point
+		if (this.data.length === 1) return this.data[0].val;
+		
+		// Define the beginning of the time span
+		let spanStart = time - this.span;
+
+		// Find the start index
+		let ndx = 0;
+		while (ndx < this.data.length && this.data[ndx].time < spanStart) {
+			ndx++;
+		}
+
+		// Edge case: time is beyond the last value
+		// FIXME: clean up the list
+		if (ndx === this.data.length) return this.data[ndx - 1].val;
+
+		// Initialize the accumulation variable
+		let val = 0.0;
+		let timePeriod = 0.0;
+
+		// Get rid of the earlier values
+		while (ndx > 1) {
+			this.data.shift();
+			ndx--;
+		}
+
+		// Is there a period before the span start?
+		if (ndx !== 0 && this.data[ndx].time > spanStart) {
+
+			// Add the initial segment
+			let diff = spanStart - this.data[ndx - 1].time;
+			let tot = this.data[ndx].time - this.data[ndx - 1].time;
+			let low = lerp(this.data[ndx - 1].val, this.data[ndx].val, diff / tot);
+			val = 0.5 * (low + this.data[ndx].val) * (tot - diff);
+			timePeriod += tot - diff;
+		}
+
+		// Now accumulate the remainder
+		for (let i = ndx; i < this.data.length - 1; i++) {
+			let currAvg = (this.data[i + 1].val + this.data[i].val) / 2;
+			let currDiff = this.data[i + 1].time - this.data[i].time;
+			val += currAvg * currDiff;
+			timePeriod += currDiff;
+		}
+
+		// Add the final segment
+		val += this.data[this.data.length - 1].val * (time - this.data[this.data.length - 1].time);
+		timePeriod += time - this.data[this.data.length - 1].time;
+
+		// Finally, divide by the time duration
+		return val / timePeriod;
+	}
+	clear() {
+		this.data = [];
+	}
+}
+
 // FIXME: Horrible approximation!
 function getLLfromXY(lat, lon, x, y) {
   const distPerLat = 40075017 / 360.0;
@@ -223,6 +293,13 @@ function getVelocity(heading, pitch, speed) {
 		 speed * Math.sin(pitch_rad));
 }
 
+function getDistance(p1, p2) {
+	let dx = p2.x - p1.x;
+	let dy = p2.y - p1.y;
+	let dz = p2.z - p1.z;
+	return Math.sqrt(dx * dx + dy * dy + dz * dz);
+}
+
 function calculateAcceleration(throttle, speed, pitch, delta) {
 
 	// Look up the right position
@@ -282,13 +359,13 @@ function getRandom(min, max) {
 	return diff * Math.random() + min;
 }
 
-class Bogey {
+class Entity {
 	constructor(x, y, heading, altitude, speed) {
 		this.pos = new Vector3(x, y, altitude);
 		this.speed = speed;
 		this.heading = heading;
 		this.pitch = 0.0;
-		this.type = 'unknown';
+		this.type = 'bogey';
 		this.velocity = getVelocity(this.heading, this.pitch, this.speed);
 	}
 	update(delta) {
@@ -299,34 +376,125 @@ class Bogey {
 	}
 }
 
+class HomingMissile extends Entity {
+	constructor(x, y, heading, altitude, speed, target, duration = 480.0) {
+		super(x, y, heading, altitude, speed);
+		this.type = 'missile';
+		this.target = target;
+		this.horzDrift = new MovingAverage(3.0);
+		this.vertDrift = new MovingAverage(3.0);
+		this.lastBrg = null;
+		this.lastVA = null;
+		this.lastTime = 0.0;
+		this.horzPID = new PIDController(0.1, 0, 0, 1, 0.1);
+		this.horzPID.setTarget(0.0);
+		this.vertPID = new PIDController(0.1, 0, 0, 1, 0.1);
+		this.vertPID.setTarget(0.0);
+		this.duration = duration;
+		this.radarRange = 10;
+	}
+	update(delta) {
+
+		// Update life
+		this.duration -= delta;
+		if (this.duration < 0) {
+			this.dead = true;
+			return;
+		}
+
+		// Looking for a target if none
+		if (this.type === 3 && this.target === null) {
+			
+			// Step through all targets
+			// FIXME - add the code here
+		}
+
+		// Guidance if we have a target
+		if (this.target) {
+
+			// Calculate BRAA
+			let data = braa(this.pos, this.velocity, this.target.pos, this.target.velocity);
+
+			// Guidance logic -- contact drift
+			if (this.lastBrg !== null) {
+				let hDrift = (data.brg - this.lastBrg) / delta;
+				let vDrift = (data.va - this.lastVA) / delta;
+				this.horzDrift.add(hDrift, this.lastTime + delta);
+				this.vertDrift.add(vDrift, this.lastTime + delta);
+				this.heading -= this.horzPID.update(delta, this.horzDrift.avg(this.lastTime + delta));
+				this.pitch -= this.vertPID.update(delta, this.vertDrift.avg(this.lastTime + delta));
+			}
+			this.lastBrg = data.brg;
+			this.lastVA = data.va;
+			this.lastTime += delta;
+
+			// Reduce speed due to drag (FIXME)
+			this.speed -= this.speed * 0.005 * delta;
+			if (this.speed < 0) this.speed = 0;
+
+			// Gravity?
+			this.pos.z -= 10 * delta;
+
+			// Loft?
+		}
+
+		// Now update using the superclass
+		super.update(delta);
+
+		// Check if collision?
+		if (this.target) {
+			if (getDistance(this.pos, this.target.pos) < 50) {
+				this.dead = true;
+				this.target.dead = true;
+				messages.add(`RIO: ${callsignPlayer}, ${callsignAWACS}, splash bogey!`, 5.0);
+			}
+		}
+	}
+}
+
 class World {
 
 	constructor() {
-		this.bogeys = [];
+		this.entities = [];
 	}
 
 	createBogey(brg, hdg, distance, alt, speed) {
 		let x = tomcat.pos.x - distance * Math.cos(deg2rad(brg + 90));
 		let y = tomcat.pos.y + distance * Math.sin(deg2rad(brg + 90));
-		let bogey = new Bogey(x, y, hdg, alt, speed);
-		this.bogeys.push(bogey);
+		let bogey = new Entity(x, y, hdg, alt, speed);
+		this.entities.push(bogey);
 		return bogey;
 	}
 
 	update(delta) {
-		for (const bogey of this.bogeys) {
-			bogey.update(delta);
+
+		// Update the entities
+		let dead = [];
+		for (const entity of this.entities) {
+			entity.update(delta);
+			if (entity.dead === true) {
+				if (entity.contact) {
+					awg9.display.removeChild(entity.contact.gfx);
+				}
+				if (awg9.hooked == entity) awg9.hooked = null;
+				dead.push(entity);
+			}
 		}
+
+		// Clean up the dead
+		this.entities = this.entities.filter((el) => {
+			return !dead.includes(el);
+		});
 	}
 
 	clear() {
-		for (const bogey of this.bogeys) {
-			if (bogey.contact) {
-				awg9.display.removeChild(bogey.contact.gfx);
+		for (const entity of this.entities) {
+			if (entity.contact) {
+				awg9.display.removeChild(entity.contact.gfx);
 			}
-			if (awg9.hooked == bogey) awg9.hooked = null;
+			if (awg9.hooked == entity) awg9.hooked = null;
 		}
-		this.bogeys = [];
+		this.entities = [];
 	}
 }
 
@@ -446,14 +614,24 @@ class Contact {
 			this.gfx.lineStyle(2, awg9Color);
 			this.alt.style.stroke = awg9Color;
 		}
-		this.gfx.drawCircle(0, 0, 1)
-		this.gfx.moveTo(-this.size / 2, 0);
-		this.gfx.lineTo(-this.size / 2, -this.size / 2);
-		this.gfx.lineTo(this.size / 2, -this.size / 2);
-		this.gfx.lineTo(this.size / 2, 0);
-		this.gfx.moveTo(0, 0);
-		this.gfx.lineTo(xd, yd);
-		this.alt.text = Math.ceil(m2ft(this.bogey.pos.z) / 10000);
+
+		console.log(this.bogey.type);
+		if (this.bogey.type === 'missile') {
+			this.gfx.drawCircle(0, 0, 2)			
+			this.gfx.moveTo(0, 0);
+			this.gfx.lineTo(xd, yd);
+			this.alt.text = Math.ceil(m2ft(this.bogey.pos.z) / 10000);
+		}
+		else {
+			this.gfx.drawCircle(0, 0, 1)
+			this.gfx.moveTo(-this.size / 2, 0);
+			this.gfx.lineTo(-this.size / 2, -this.size / 2);
+			this.gfx.lineTo(this.size / 2, -this.size / 2);
+			this.gfx.lineTo(this.size / 2, 0);
+			this.gfx.moveTo(0, 0);
+			this.gfx.lineTo(xd, yd);
+			this.alt.text = Math.ceil(m2ft(this.bogey.pos.z) / 10000);
+		}
 	}
 }
 
@@ -520,28 +698,28 @@ class AWG9 {
 	updateContacts(delta) {
 
 		// Step through all bogeys
-		for (const bogey of world.bogeys) {
+		for (const entity of world.entities) {
 
 			// Calculate the BRAA
-			let data = braa(tomcat.pos, tomcat.velocity, bogey.pos, bogey.velocity);
+			let data = braa(tomcat.pos, tomcat.velocity, entity.pos, entity.velocity);
 
-			// Is this bogey inside the radar volume?
-			if (!this.insideRadarVolume(data)) {				
-				if (bogey.contact) {
-					this.display.removeChild(bogey.contact.gfx);
-					if (this.hooked == bogey) this.hooked = null;
+			// Is this entity inside the radar volume?
+			if (entity.type !== 'missile' && !this.insideRadarVolume(data)) {
+				if (entity.contact) {
+					this.display.removeChild(entity.contact.gfx);
+					if (this.hooked == entity) this.hooked = null;
 				}
 				continue;
 			}
 
 			// Create the contact if needed
-			if (bogey.contact === undefined) {
-				bogey.contact = new Contact(bogey, 25);
+			if (entity.contact === undefined) {
+				entity.contact = new Contact(entity, 25);
 			}
 			
 			// Add it to the container if needed
-			if (!this.display.children.includes(bogey.contact.gfx)) {
-				this.display.addChild(bogey.contact.gfx);
+			if (!this.display.children.includes(entity.contact.gfx)) {
+				this.display.addChild(entity.contact.gfx);
 			}
 
 			// Draw the contact
@@ -550,15 +728,15 @@ class AWG9 {
 				// Calculate coordinates
 				let displayDim = Math.min(winWidth, winHeight);
 				let nmPerPixel = displayDim / this.range;
-				let xp = winWidth / 2 + m2nm(bogey.pos.x - tomcat.pos.x) * nmPerPixel;
-				let yp = winHeight / 2 - m2nm(bogey.pos.y - tomcat.pos.y) * nmPerPixel;
+				let xp = winWidth / 2 + m2nm(entity.pos.x - tomcat.pos.x) * nmPerPixel;
+				let yp = winHeight / 2 - m2nm(entity.pos.y - tomcat.pos.y) * nmPerPixel;
 
 				// Calculate closure vector
-				let xd =  ms2kts(bogey.velocity.x) / 1000.0 * 0.10 * winHeight;
-				let yd = -ms2kts(bogey.velocity.y) / 1000.0 * 0.10 * winHeight;
+				let xd =  ms2kts(entity.velocity.x) / 1000.0 * 0.10 * winHeight;
+				let yd = -ms2kts(entity.velocity.y) / 1000.0 * 0.10 * winHeight;
 
 				// Update the shape
-				bogey.contact.update(xp, yp, xd, yd);
+				entity.contact.update(xp, yp, xd, yd);
 			}
 			else {
 			
@@ -571,12 +749,12 @@ class AWG9 {
 
 				// Calculate closure vector
 				let vt = tomcat.velocity.getInverse();
-				vt.add(bogey.velocity);
+				vt.add(entity.velocity);
 				vt.scale(0.10 * displayHeight / 1000);
 				let rd = rot2d(vt, tomcat.heading);
 
 				// Update the shape
-				bogey.contact.update(xp, yp, rd.x, rd.y);
+				entity.contact.update(xp, yp, rd.x, rd.y);
 			}
 		}
 	}
@@ -841,6 +1019,39 @@ let kickAndBuildTutorial = {
 	]
 };
 
+let bvrTutorial = {
+	title: "Tutorial: BVR Timeline",
+	init: () => {
+		let brg = Math.random() * 360;
+		let hdg = wrapdeg(brg + 180 + getRandom(10, 20));
+		let alt = getRandom(10000, 40000);
+		let spd = getRandom(250, 600);
+		let range = 100;
+		let bogey = world.createBogey(brg, hdg, nm2m(range), ft2m(alt), kts2ms(spd));
+		messages.add(`${callsignAWACS.toUpperCase()}: ${callsignPlayer}, ${callsignAWACS}, new group, BRAA ${Math.round(brg)}, ${range} miles, ${Math.round(alt / 1000.0) * 1000} feet, hot.`, 5.0);
+		return bogey;
+	},
+	sequence: [
+		[
+			{ task: (t) => 'Turn to bandit bearing ' + Math.round(t.brg), check: (t) => Math.abs(t.ata) < 10.0 },
+			{ task: (t) => 'Roll out on bearing', check: (t) => Math.abs(tomcat.roll) < 10.0, conditional: true }
+		],
+		[ 
+			{ task: (t) => 'Hook (select) the bandit', check: (t) => awg9.hooked !== null },
+			{ task: (t) => 'Match bandit altitude ' + Math.round(m2ft(t.alt) / 1000.0) * 1000, check: (t) => Math.abs(t.alt - tomcat.pos.z) < 500, conditional: true}
+		],
+		[
+			{ task: (t) => 'Approach within 35 nm', check: (t) => m2nm(t.sr) < 35},
+		],
+		[
+			{ task: (t) => 'Launch a Fox-Three' , check: (t) => Math.abs(t.ta + 40) < 2 },
+			{ task: (t) => 'Set collision course (ATA/bearing 40&#177;2&deg;)' , check: (t) => Math.abs(t.ata - 40) < 2 },
+			{ task: (t) => 'Approach to 10 nm', check: (t) => m2nm(t.sr) < 10, conditional: true },
+		],
+		[{ task: (t) => 'Success!', check: (t) => false }]
+	]
+};
+
 class Scenario {
 	constructor(title) {
 		this.title = title;
@@ -904,7 +1115,7 @@ class InterceptScenario extends Scenario {
 		let alt = getRandom(5000, 40000);
 		let spd = getRandom(200, 600);
 		world.createBogey(brg, hdg, nm2m(this.range), ft2m(alt), kts2ms(spd));
-		messages.add(`${callsignAWACS.toUpperCase()}: ${callsignPlayer}, ${callsignAWACS}, new group, BRAA ${Math.round(brg)}, ${this.range} miles, ${Math.round(alt / 10000.0) * 10000} feet, hot.`, 5.0);
+		messages.add(`${callsignAWACS.toUpperCase()}: ${callsignPlayer}, ${callsignAWACS}, new group, BRAA ${Math.round(brg)}, ${this.range} miles, ${Math.round(alt / 1000.0) * 1000} feet, hot.`, 5.0);
 	}
 	update(delta) {}
 	cleanup() {
@@ -1155,6 +1366,16 @@ $(document).ready(function() {
 	$('#dwn-5k').click((e) => setTomcatAltitude(tomcat.pos.z - ft2m(5000), e.target.id, 'descend 5,000.'));
 	$('#dwn-10k').click((e) => setTomcatAltitude(tomcat.pos.z - ft2m(10000), e.target.id, 'descend 10,000.'));
 
+	// Launch button
+	$('#launch-btn').click((e) => {
+		if (awg9.hooked === null) return;
+		let target = awg9.hooked;
+		let missile = new HomingMissile(tomcat.pos.x, tomcat.pos.y, tomcat.heading, tomcat.pos.z, kts2ms(3300), target);
+		messages.add(`RIO: ${callsignPlayer}, ${callsignAWACS}, fox three.`, 5.0);
+		//let missile = new HomingMissile(target.pos.x, target.pos.y, target.heading, target.pos.z, kts2ms(3300), tomcat);
+		world.entities.push(missile);
+	});
+
 	// Scenario control
 	for (const s of scenarios) {
 		$('#scenario').append(`<option>${s.title}</option>`);
@@ -1173,6 +1394,18 @@ $(document).ready(function() {
 			scenario.cleanup();
 			$('#scenario-status').html(`Current scenario: <b>None</b>`);
 			scenario = null;
+		}
+	});
+	$('#pause-scenario').click(() => {
+		if ($('#pause-scenario').html() === "Pause") {
+			$('#pause-scenario').html("Unpause");
+			$('#pause-float').css('display', 'block');
+			paused = true;
+		}
+		else {
+			$('#pause-scenario').html("Pause");
+			$('#pause-float').css('display', 'none');
+			paused = false;
 		}
 	});
 
@@ -1221,16 +1454,18 @@ $(document).ready(function() {
 
 		// Update time
 		let currTime = Date.now();
-		let diffTime = (currTime - lastTime) / 1000.0; 
+		let diffTime = (currTime - lastTime) / 1000.0;
 
-		// Update the fighter
-		tomcat.update(diffTime);
+		if (paused === false) {
+			// Update the fighter
+			tomcat.update(diffTime);
 
-		// Update the world
-		world.update(diffTime);
+			// Update the world
+			world.update(diffTime);
 
-		// Update the radar
-		awg9.update(diffTime);
+			// Update the radar
+			awg9.update(diffTime);
+		}
 
 		// Update the message system
 		messages.update(diffTime);
@@ -1246,6 +1481,9 @@ $(document).ready(function() {
 
 // -- Main script follows
 let winWidth, winHeight;
+
+// Pause flag (maybe should start paused?)
+let paused = false;
 
 // Create the PIXI application
 let app = new PIXI.Application({

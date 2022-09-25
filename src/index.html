@@ -27,8 +27,12 @@
 
 		<div id="overlay"></div>
 
-		<div class="float" id="splash-screen" style="left: calc(50% - 256px); top: calc(50vh - 192px); z-index: 200; width: 512px; height: 384px; border: 10px solid;">
+		<div class="float" id="splash-screen" style="left: calc(50% - 360px); top: calc(50vh - 192px); z-index: 200; width: 720px; height: 405px; border: 10px solid;">
 			<img src="images/rio-splash.jpg" width="100%"></img>
+		</div>
+
+		<div class="float" id="pause-float" style="right: 16px; top:16px; z-index: 200; display: none;">
+			<div>PAUSED</div>
 		</div>
 
 		<div id="display">
@@ -104,10 +108,11 @@
 
 					<div class="btn-group">
 						Scenario:
-						<select name="scenario" id="scenario">
+						<select name="scenario" id="scenario" style="width: 150px;">
 						</select>
 						<button class="pushbtn" id="select-scenario">Select</button>
 						<button class="pushbtn" id="clear-scenario">Clear</button>
+						<button class="pushbtn" id="pause-scenario">Pause</button>
 					</div>
 				</div>
 			</div>
@@ -163,6 +168,11 @@
 
 			<div class="about-group btn-group">
 				<button class="pushbtn" id="about-btn">About RIO...</button>
+				<button class="pushbtn" id="vf111-btn" onclick="window.open('https://discord.gg/EXzb3DJX9d');">VF-111 Discord</button>
+			</div>
+
+			<div class="weps-group btn-group">
+				<button class="launchbtn" id="launch-btn">Launch</button>
 			</div>
 
 		</div>
