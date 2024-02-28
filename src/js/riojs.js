@@ -588,13 +588,14 @@ class Contact {
 		this.bogey = bogey;
 		this.size = size;
 		this.gfx = new PIXI.Graphics();
-		this.gfx.interactive = true;
+		this.gfx.eventMode = 'static';
 		this.gfx.hitArea = new PIXI.Rectangle(-this.size / 2, -this.size / 2, this.size, this.size);
-		this.gfx.click = () => {
-			awg9.hooked = this.bogey;
-			let data = braa(tomcat.pos, tomcat.velocity, this.bogey.pos, this.bogey.velocity);
-			messages.add(`RIO: New radar contact, BRAA ${Math.round(data.brg)}, ${Math.round(m2nm(data.sr))} miles, ${Math.round(m2ft(data.alt) / 1000.0) * 1000} feet, ${aspect2str(data.ta)}.`, 5.0);
-		};
+		this.gfx.cursor = 'pointer';
+        this.gfx.on('pointerdown',()=> {
+            awg9.hooked = this.bogey;
+            let data = braa(tomcat.pos, tomcat.velocity, this.bogey.pos, this.bogey.velocity);
+            messages.add(`RIO: New radar contact, BRAA ${Math.round(data.brg)}, ${Math.round(m2nm(data.sr))} miles, ${Math.round(m2ft(data.alt) / 1000.0) * 1000} feet, ${aspect2str(data.ta)}.`, 5.0);
+        });
 		this.alt = new PIXI.Text(Math.ceil(m2ft(this.bogey.pos.z) / 10000), awg9Style);
 		this.alt.anchor.set(1, 0.5);
 		this.alt.x = -this.size / 2;
@@ -662,7 +663,7 @@ class AWG9 {
 		this.bg = new PIXI.Sprite(PIXI.Texture.BLACK);
 		this.bg.width = width;
 		this.bg.height = height;
-		this.bg.interactive = true;
+		this.bg.eventMode = 'static';
 		this.bg.click = () => { this.hooked = null; }
 		this.display.addChild(this.bg);
 
