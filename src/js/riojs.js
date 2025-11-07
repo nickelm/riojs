@@ -1238,7 +1238,7 @@ $(document).ready(function() {
 	$('#az-left').mousedown(() => {
 		turnRadar(-0.6);
 		if (fireInterval != null) clearInterval(fireInterval);
-		fireInterval = setInterval(turn, 50, -0.6);
+		fireInterval = setInterval(turnRadar, 50, -0.6);
 	});
 
 	$('#az-left').mouseup(() => {
@@ -1249,7 +1249,7 @@ $(document).ready(function() {
 	$('#az-right').mousedown(() => {
 		turnRadar(0.6);
 		if (fireInterval != null) clearInterval(fireInterval);
-		fireInterval = setInterval(turn, 50, 0.6);
+		fireInterval = setInterval(turnRadar, 50, 0.6);
 	});
 
 	$('#az-right').mouseup(() => {
